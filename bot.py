@@ -222,10 +222,10 @@ def build_summary(diff):
 
 
 def highlight_new_text(old_desc, new_desc):
-    """Возвращает новый состав, где добавленные (новые) слова — жирным.
+    """Возвращает новый состав, где добавленные (новые) слова — жирным с подчёркиванием.
 
     Сравнивает старый и новый текст по словам (с сохранением пробелов и
-    переносов строк) и оборачивает новые/изменённые фрагменты в <b>...</b>.
+    переносов строк) и оборачивает новые/изменённые фрагменты в <b><u>...</u></b>.
     """
     old = esc(old_desc)
     new = esc(new_desc)
@@ -239,7 +239,7 @@ def highlight_new_text(old_desc, new_desc):
             out.append(chunk)
         elif op in ("insert", "replace"):
             if chunk.strip():
-                out.append("<b>" + chunk + "</b>")
+                out.append("<b><u>" + chunk + "</u></b>")
             else:
                 out.append(chunk)
         # "delete" — старый текст, в новом его нет, пропускаем
