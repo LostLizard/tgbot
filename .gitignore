@@ -1,0 +1,18 @@
+# секреты и локальные данные
+.env
+data/
+users.json
+bot.log
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# ОС
+.DS_Store
+Thumbs.db
+
+# локальные вспомогательные файлы
+*.bat

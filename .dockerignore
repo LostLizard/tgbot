@@ -1,0 +1,9 @@
+.env
+data/
+users.json
+bot.log
+__pycache__/
+*.pyc
+.git/
+.venv/
+*.bat

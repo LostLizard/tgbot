@@ -1,0 +1,16 @@
+[Unit]
+Description=Aroma menu Telegram bot
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+# Поменяйте пользователя/пути под свой сервер
+User=aroma
+WorkingDirectory=/opt/aroma-menu-bot
+ExecStart=/opt/aroma-menu-bot/.venv/bin/python bot.py
+Restart=always
+RestartSec=5
+EnvironmentFile=/opt/aroma-menu-bot/.env
+
+[Install]
+WantedBy=multi-user.target

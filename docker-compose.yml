@@ -1,0 +1,10 @@
+services:
+  bot:
+    build: .
+    container_name: aroma-menu-bot
+    restart: unless-stopped
+    env_file:
+      - .env
+    volumes:
+      # список пользователей рассылки сохраняется между перезапусками
+      - ./data:/app/data
