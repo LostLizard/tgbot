@@ -313,6 +313,46 @@ async def cmd_refresh(message: Message):
             await notify_users(message.bot, diff)
 
 
+@router.message(Command("notify_test"))
+async def cmd_notify_test(message: Message):
+    """Отправляет тестовое уведомление только этому пользователю."""
+    try:
+        menu, _ = await loader.get_menu()
+    except Exception as exc:  # noqa: BLE001
+        await message.answer(f"⚠️ Не удалось загрузить меню.\n{esc(exc)}")
+        return
+
+    # берём первое блюдо из «Пицца» как пример
+    dish = None
+    for cat in menu:
+        if cat["title"] == "Пицца":
+            for sec in cat["sections"]:
+                if sec["dishes"]:
+                    dish = sec["dishes"][0]
+                    break
+        if dish:
+            break
+    if dish is None:
+        for cat in menu:
+            for sec in cat["sections"]:
+                if sec["dishes"]:
+                    dish = sec["dishes"][0]
+                    break
+            if dish:
+                break
+
+    old_desc = dish["description"]
+    new_desc = old_desc + "\n[ТЕСТ] Добавлен новый ингредиент."
+
+    await message.answer(
+        "⚠️ <b>Внимание! Изменения в блюде!</b>\n\n"
+        f"Изменено блюд: 1\n• <b>{esc(dish['name'])}</b>"
+    )
+    for chunk in split_long_text(build_detail(dish["name"], old_desc, new_desc)):
+        await message.answer(chunk)
+    await message.answer("ℹ️ Это тестовое уведомление — отправлено только вам.")
+
+
 @router.message(Command("search"))
 async def cmd_search(message: Message, command: CommandObject):
     query = (command.args or "").strip()
@@ -505,6 +545,7 @@ async def main():
             BotCommand(command="menu", description="Разделы меню"),
             BotCommand(command="search", description="Поиск блюда"),
             BotCommand(command="refresh", description="Обновить меню"),
+            BotCommand(command="notify_test", description="Тестовое уведомление"),
         ]
     )
 
