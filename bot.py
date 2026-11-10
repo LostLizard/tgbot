@@ -11,10 +11,14 @@
 """
 
 import asyncio
+import datetime
+import difflib
 import html
 import json
 import logging
 import os
+import re
+import zoneinfo
 
 from aiogram import Bot, Dispatcher, F, Router
 from aiogram.client.default import DefaultBotProperties
@@ -217,11 +221,36 @@ def build_summary(diff):
     return "\n".join(lines)
 
 
+def highlight_new_text(old_desc, new_desc):
+    """Возвращает новый состав, где добавленные (новые) слова — жирным.
+
+    Сравнивает старый и новый текст по словам (с сохранением пробелов и
+    переносов строк) и оборачивает новые/изменённые фрагменты в <b>...</b>.
+    """
+    old = esc(old_desc)
+    new = esc(new_desc)
+    old_tokens = re.split(r"(\s+)", old)
+    new_tokens = re.split(r"(\s+)", new)
+    sm = difflib.SequenceMatcher(a=old_tokens, b=new_tokens, autojunk=False)
+    out = []
+    for op, _i1, _i2, j1, j2 in sm.get_opcodes():
+        chunk = "".join(new_tokens[j1:j2])
+        if op == "equal":
+            out.append(chunk)
+        elif op in ("insert", "replace"):
+            if chunk.strip():
+                out.append("<b>" + chunk + "</b>")
+            else:
+                out.append(chunk)
+        # "delete" — старый текст, в новом его нет, пропускаем
+    return "".join(out)
+
+
 def build_detail(name, old_desc, new_desc):
     return (
         f"<b>{esc(name)}</b>\n\n"
         f"Состав:\n{esc(old_desc) if old_desc else '—'}\n\n"
-        f"Новый состав:\n{esc(new_desc) if new_desc else '—'}"
+        f"Новый состав:\n{highlight_new_text(old_desc, new_desc) if new_desc else '—'}"
     )
 
 
@@ -469,11 +498,43 @@ async def cb_dish(callback: CallbackQuery):
 
 
 # ---------------------------------------------------------------------- #
-# Фоновая проверка изменений
+# Фоновая проверка изменений (по расписанию)
 # ---------------------------------------------------------------------- #
+def _parse_schedule(schedule_str):
+    """'23:00,06:00' -> [(23, 0), (6, 0)]"""
+    times = []
+    for part in schedule_str.split(","):
+        part = part.strip()
+        if not part:
+            continue
+        hh, mm = part.split(":")
+        times.append((int(hh), int(mm)))
+    return times
+
+
+def seconds_until_next(times, tz_name):
+    """Секунды до ближайшего из времён times (список (HH, MM)) в часовом поясе tz_name."""
+    tz = zoneinfo.ZoneInfo(tz_name)
+    now = datetime.datetime.now(tz).replace(tzinfo=None)
+    today = now.date()
+    candidates = []
+    for hh, mm in times:
+        candidates.append(datetime.datetime(today.year, today.month, today.day, hh, mm))
+        candidates.append(
+            datetime.datetime(today.year, today.month, today.day, hh, mm)
+            + datetime.timedelta(days=1)
+        )
+    future = [c for c in candidates if c > now]
+    nxt = min(future) if future else candidates[0]
+    return max((nxt - now).total_seconds(), 1.0)
+
+
 async def update_checker(bot: Bot):
+    times = _parse_schedule(config.CHECK_SCHEDULE)
     while True:
-        await asyncio.sleep(config.CHECK_INTERVAL_SECONDS)
+        delay = seconds_until_next(times, config.CHECK_TZ)
+        log.info("Следующая проверка меню через %.1f мин", delay / 60)
+        await asyncio.sleep(delay)
         try:
             old = loader.cached_menu
             menu, _source = await loader.get_menu(force=True)

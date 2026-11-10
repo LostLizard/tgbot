@@ -37,8 +37,11 @@ SKIP_SHEETS = [s.strip() for s in os.getenv("SKIP_SHEETS", "Утро").split(","
 # Как часто перечитывать Excel (в секундах). Меню кэшируется в памяти.
 CACHE_TTL_SECONDS = int(os.getenv("CACHE_TTL_SECONDS", "3600"))
 
-# Как часто проверять изменения меню и рассылать уведомления (в секундах).
-CHECK_INTERVAL_SECONDS = int(os.getenv("CHECK_INTERVAL_SECONDS", "3600"))
+# Расписание проверки меню (время МСК, через запятую). Формат HH:MM.
+CHECK_SCHEDULE = os.getenv("CHECK_SCHEDULE", "23:00,06:00")
+
+# Часовой пояс для расписания.
+CHECK_TZ = os.getenv("CHECK_TZ", "Europe/Moscow")
 
 # --- Обход блокировок Telegram (РФ) ---
 # HTTP/HTTPS-прокси для Bot API, например: http://127.0.0.1:8080
